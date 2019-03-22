@@ -1,16 +1,16 @@
 module QueryTrace
   mattr_accessor :depth
   self.depth = 20
-  
+
   def self.enabled?
     defined?(@@trace_queries) && @@trace_queries
   end
-     
+
   def self.enable!
     ::ActiveRecord::ConnectionAdapters::AbstractAdapter.send(:include, QueryTrace) unless defined?(@@trace_queries)
     @@trace_queries = true
   end
-  
+
   def self.disable!
     @@trace_queries = false
   end
@@ -21,7 +21,7 @@ module QueryTrace
     enabled? ? disable! : enable!
     enabled?
   end
-  
+
   def self.append_features(klass)
     super
     klass.class_eval do
@@ -37,22 +37,22 @@ module QueryTrace
 
     return result unless @@trace_queries
 
-    return result unless ActiveRecord::Base.logger and ActiveRecord::Base.logger.debug?
+    return result unless ActiveRecord::Base.logger && ActiveRecord::Base.logger.debug?
     return result if / Columns$/ =~ name
 
-    ActiveRecord::Base.logger.debug(format_trace(Rails.backtrace_cleaner.clean(caller)[0..self.depth]))
+    ActiveRecord::Base.logger.debug(format_trace(Rails.backtrace_cleaner.clean(caller)))
 
-    result 
+    result
   end
 
   def format_trace(trace)
     if (defined?(ActiveRecord::LogSubscriber) ? ActiveRecord::LogSubscriber : ActiveRecord::Base).colorize_logging
-      message_color = "35;2"
-      trace.collect{|t| "    \e[#{message_color}m#{t}\e[0m"}.join("\n")
+      message_color = '35;2'
+      trace.map { |t| "    \e[#{message_color}m#{t}\e[0m" }.uniq[0..QueryTrace.depth].join("\n")
     else
-      trace.join("\n    ")
+      trace.uniq[0..QueryTrace.depth].join("\n    ")
     end
   end
 end
 
-QueryTrace.enable! if ENV["QUERY_TRACE"]
+QueryTrace.enable! if ENV['QUERY_TRACE']
